@@ -1,128 +1,113 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My E-Commerce Store</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script defer src="script.js"></script>
-</head>
-<body>
-  <nav class="navbar">
-    <h1>E-Commerce</h1>
-    <ul>
-      <li><a href="index.html">Home</a></li>
-      <li><a href="cart.html">Cart (<span id="cart-count">0</span>)</a></li>
-      <li><input type="text" id="search" placeholder="Search products..."></li>
-      <li><button id="logout-btn">Logout</button></li>
-    </ul>
-  </nav>
+// script.js
 
-  <section class="products">
-    <h2>Featured Products</h2>
-    <div class="product-list" id="product-list"></div>
-  </section>
-</body>
-</html>
-
-
-/* === script.js === */
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-function addToCart(name, price) {
-  cart.push({ name, price });
-  localStorage.setItem("cart", JSON.stringify(cart));
-  updateCartCount();
-}
-
-function updateCartCount() {
-  const count = cart.length;
-  const countEl = document.getElementById("cart-count");
-  if (countEl) countEl.innerText = count;
-}
-
-function displayCart() {
+document.addEventListener("DOMContentLoaded", function () {
+  const isLoggedIn = localStorage.getItem("isLoggedIn");
+  const logoutBtn = document.getElementById("logout-btn");
+  const cartCount = document.getElementById("cart-count");
   const cartItemsContainer = document.getElementById("cart-items");
-  const totalElement = document.getElementById("cart-total");
-  let total = 0;
-  cartItemsContainer.innerHTML = "";
-  cart.forEach((item, index) => {
-    const itemElement = document.createElement("div");
-    itemElement.innerHTML = `${item.name} - $${item.price} <button onclick="removeFromCart(${index})">Remove</button>`;
-    cartItemsContainer.appendChild(itemElement);
-    total += item.price;
-  });
-  totalElement.innerText = total.toFixed(2);
-}
+  const cartTotal = document.getElementById("cart-total");
+  const productList = document.getElementById("product-list");
+  const searchInput = document.getElementById("search");
 
-function removeFromCart(index) {
-  cart.splice(index, 1);
-  localStorage.setItem("cart", JSON.stringify(cart));
-  displayCart();
-  updateCartCount();
-}
+  const products = [
+    { id: 1, name: "Golden Retriever", price: 300, image: "https://placedog.net/400/300?id=1" },
+    { id: 2, name: "Persian Cat", price: 250, image: "https://placekitten.com/400/300" },
+    { id: 3, name: "Parrot", price: 150, image: "https://loremflickr.com/400/300/parrot" },
+    { id: 4, name: "Siberian Husky", price: 400, image: "https://placedog.net/400/300?id=4" },
+    { id: 5, name: "Rabbit", price: 100, image: "https://loremflickr.com/400/300/rabbit" },
+  ];
 
-function checkLogin() {
-  if (localStorage.getItem("isLoggedIn") !== "true") {
+  // Redirect if not logged in
+  if (
+    (window.location.pathname.includes("index") || window.location.pathname.includes("cart")) &&
+    isLoggedIn !== "true"
+  ) {
     window.location.href = "login.html";
   }
-}
 
-function setupLogout() {
-  const logoutBtn = document.getElementById("logout-btn");
+  // Logout
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("cart");
       window.location.href = "login.html";
     });
   }
-}
 
-function loadProducts() {
-  const productList = document.getElementById("product-list");
-  if (!productList) return;
-  const products = [
-    { name: "Product 1", price: 10, img: "https://via.placeholder.com/150", category: "electronics" },
-    { name: "Product 2", price: 15, img: "https://via.placeholder.com/150", category: "clothing" },
-    { name: "Product 3", price: 20, img: "https://via.placeholder.com/150", category: "books" },
-    { name: "Product 4", price: 25, img: "https://via.placeholder.com/150", category: "electronics" }
-  ];
+  // Render products
+  if (productList) {
+    renderProducts(products);
+  }
 
-  products.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "product";
-    div.dataset.category = p.category;
-    div.innerHTML = `
-      <img src="${p.img}" alt="${p.name}" />
-      <h3>${p.name}</h3>
-      <p>$${p.price.toFixed(2)}</p>
-      <button onclick="addToCart('${p.name}', ${p.price})">Add to Cart</button>
-    `;
-    productList.appendChild(div);
-  });
+  // Render cart
+  if (cartItemsContainer) {
+    renderCart();
+  }
 
-  const searchInput = document.getElementById("search");
+  // Search filter
   if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      const searchValue = searchInput.value.toLowerCase();
-      const productElements = productList.querySelectorAll(".product");
-      productElements.forEach(prod => {
-        const name = prod.querySelector("h3").textContent.toLowerCase();
-        prod.style.display = name.includes(searchValue) ? "block" : "none";
-      });
+    searchInput.addEventListener("input", (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = products.filter((p) => p.name.toLowerCase().includes(query));
+      renderProducts(filtered);
     });
   }
-}
 
-if (window.location.pathname.includes("index.html")) {
-  checkLogin();
+  function renderProducts(items) {
+    productList.innerHTML = "";
+    items.forEach((product) => {
+      const card = document.createElement("div");
+      card.className = "product";
+      card.innerHTML = `
+        <img src="${product.image}" alt="${product.name}" />
+        <h3>${product.name}</h3>
+        <p>$${product.price}</p>
+        <button onclick="addToCart(${product.id})">Add to Cart</button>
+      `;
+      productList.appendChild(card);
+    });
+  }
+
+  window.addToCart = function (id) {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const item = products.find((p) => p.id === id);
+    cart.push(item);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartCount();
+    alert(`${item.name} added to cart`);
+  };
+
+  function renderCart() {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    cartItemsContainer.innerHTML = "";
+    let total = 0;
+    cart.forEach((item, index) => {
+      const div = document.createElement("div");
+      div.className = "product";
+      div.innerHTML = `
+        <img src="${item.image}" alt="${item.name}" />
+        <h3>${item.name}</h3>
+        <p>$${item.price}</p>
+        <button onclick="removeFromCart(${index})">Remove</button>
+      `;
+      cartItemsContainer.appendChild(div);
+      total += item.price;
+    });
+    cartTotal.innerText = total.toFixed(2);
+    updateCartCount();
+  }
+
+  window.removeFromCart = function (index) {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    cart.splice(index, 1);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+  };
+
+  function updateCartCount() {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    if (cartCount) cartCount.innerText = cart.length;
+  }
+
   updateCartCount();
-  loadProducts();
-  setupLogout();
-}
-
-if (window.location.pathname.includes("cart.html")) {
-  checkLogin();
-  displayCart();
-  setupLogout();
-}
+});
