@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Register</title>
   <link rel="stylesheet" href="styles.css" />
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.querySelector("form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        // Store user data (optional)
+        localStorage.setItem("isLoggedIn", "true");
+        window.location.href = "index.html";
+      });
+    });
+  </script>
 </head>
 <body>
   <div class="form-container">
