@@ -1,5 +1,3 @@
-// script.js
-
 document.addEventListener("DOMContentLoaded", function () {
   const isLoggedIn = localStorage.getItem("isLoggedIn");
   const logoutBtn = document.getElementById("logout-btn");
@@ -17,7 +15,6 @@ document.addEventListener("DOMContentLoaded", function () {
     { id: 5, name: "Rabbit", price: 100, image: "https://loremflickr.com/400/300/rabbit" },
   ];
 
-  // Redirect if not logged in
   if (
     (window.location.pathname.includes("index") || window.location.pathname.includes("cart")) &&
     isLoggedIn !== "true"
@@ -25,7 +22,6 @@ document.addEventListener("DOMContentLoaded", function () {
     window.location.href = "login.html";
   }
 
-  // Logout
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("isLoggedIn");
@@ -34,17 +30,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Render products
-  if (productList) {
-    renderProducts(products);
-  }
+  if (productList) renderProducts(products);
+  if (cartItemsContainer) renderCart();
 
-  // Render cart
-  if (cartItemsContainer) {
-    renderCart();
-  }
-
-  // Search filter
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const query = e.target.value.toLowerCase();
@@ -79,29 +67,57 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function renderCart() {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const grouped = {};
+
+    cart.forEach((item) => {
+      if (grouped[item.id]) {
+        grouped[item.id].quantity += 1;
+      } else {
+        grouped[item.id] = { ...item, quantity: 1 };
+      }
+    });
+
     cartItemsContainer.innerHTML = "";
     let total = 0;
-    cart.forEach((item, index) => {
+
+    Object.values(grouped).forEach((item) => {
       const div = document.createElement("div");
       div.className = "product";
       div.innerHTML = `
         <img src="${item.image}" alt="${item.name}" />
         <h3>${item.name}</h3>
         <p>$${item.price}</p>
-        <button onclick="removeFromCart(${index})">Remove</button>
+        <div class="quantity-controls">
+          <button onclick="decreaseQuantity(${item.id})">−</button>
+          <span>${item.quantity}</span>
+          <button onclick="increaseQuantity(${item.id})">+</button>
+        </div>
+        <p>Subtotal: $${(item.price * item.quantity).toFixed(2)}</p>
       `;
       cartItemsContainer.appendChild(div);
-      total += item.price;
+      total += item.price * item.quantity;
     });
+
     cartTotal.innerText = total.toFixed(2);
     updateCartCount();
   }
 
-  window.removeFromCart = function (index) {
+  window.increaseQuantity = function (id) {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    cart.splice(index, 1);
+    const item = products.find((p) => p.id === id);
+    cart.push(item);
     localStorage.setItem("cart", JSON.stringify(cart));
     renderCart();
+  };
+
+  window.decreaseQuantity = function (id) {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const index = cart.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      cart.splice(index, 1);
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderCart();
+    }
   };
 
   function updateCartCount() {
