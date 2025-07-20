@@ -15,10 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     { id: 5, name: "Rabbit", price: 100, image: "https://loremflickr.com/400/300/rabbit" },
   ];
 
-  if (
-    (window.location.pathname.includes("index") || window.location.pathname.includes("cart")) &&
-    isLoggedIn !== "true"
-  ) {
+  if ((window.location.pathname.includes("index") || window.location.pathname.includes("cart")) && isLoggedIn !== "true") {
     window.location.href = "login.html";
   }
 
@@ -58,29 +55,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.addToCart = function (id) {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const item = products.find((p) => p.id === id);
-    cart.push(item);
+    const existingIndex = cart.findIndex((item) => item.id === id);
+    if (existingIndex !== -1) {
+      cart[existingIndex].quantity += 1;
+    } else {
+      const product = products.find((p) => p.id === id);
+      cart.push({ ...product, quantity: 1 });
+    }
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
-    alert(`${item.name} added to cart`);
+    alert(`${products.find((p) => p.id === id).name} added to cart`);
   };
 
   function renderCart() {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const grouped = {};
-
-    cart.forEach((item) => {
-      if (grouped[item.id]) {
-        grouped[item.id].quantity += 1;
-      } else {
-        grouped[item.id] = { ...item, quantity: 1 };
-      }
-    });
-
     cartItemsContainer.innerHTML = "";
     let total = 0;
 
-    Object.values(grouped).forEach((item) => {
+    if (cart.length === 0) {
+      cartItemsContainer.innerHTML = "<p>Your cart is empty.</p>";
+      cartTotal.innerText = "0.00";
+      updateCartCount();
+      return;
+    }
+
+    cart.forEach((item, index) => {
+      total += item.price * item.quantity;
       const div = document.createElement("div");
       div.className = "product";
       div.innerHTML = `
@@ -95,7 +95,6 @@ document.addEventListener("DOMContentLoaded", function () {
         <p>Subtotal: $${(item.price * item.quantity).toFixed(2)}</p>
       `;
       cartItemsContainer.appendChild(div);
-      total += item.price * item.quantity;
     });
 
     cartTotal.innerText = total.toFixed(2);
@@ -104,17 +103,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.increaseQuantity = function (id) {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const item = products.find((p) => p.id === id);
-    cart.push(item);
-    localStorage.setItem("cart", JSON.stringify(cart));
-    renderCart();
+    const index = cart.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      cart[index].quantity++;
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderCart();
+    }
   };
 
   window.decreaseQuantity = function (id) {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
     const index = cart.findIndex((item) => item.id === id);
     if (index !== -1) {
-      cart.splice(index, 1);
+      cart[index].quantity--;
+      if (cart[index].quantity <= 0) cart.splice(index, 1);
       localStorage.setItem("cart", JSON.stringify(cart));
       renderCart();
     }
@@ -122,7 +124,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateCartCount() {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    if (cartCount) cartCount.innerText = cart.length;
+    const totalCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+    if (cartCount) cartCount.innerText = totalCount;
   }
 
   updateCartCount();
