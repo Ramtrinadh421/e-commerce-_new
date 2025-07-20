@@ -8,17 +8,15 @@ document.addEventListener("DOMContentLoaded", function () {
   const searchInput = document.getElementById("search");
 
   const products = [
-    { id: 1, name: "Golden Retriever", price: 300, image: "https://placedog.net/400/300?id=1" },
-    { id: 2, name: "Persian Cat", price: 250, image: "https://placekitten.com/400/300" },
-    { id: 3, name: "Parrot", price: 150, image: "https://loremflickr.com/400/300/parrot" },
-    { id: 4, name: "Siberian Husky", price: 400, image: "https://placedog.net/400/300?id=4" },
-    { id: 5, name: "Rabbit", price: 100, image: "https://loremflickr.com/400/300/rabbit" },
+    { id: 1, name: "Brown Dog", price: 10000, image: "dog.jpeg" },
+    { id: 2, name: "Golden Retriever", price: 12000, image: "dog1.jpeg" },
+    { id: 3, name: "Pomeranian", price: 8000, image: "dog2.jpeg" },
+    { id: 4, name: "Adorable Kitten", price: 6000, image: "kitten.jpeg" },
+    { id: 5, name: "Persian Cat", price: 9000, image: "cat.jpeg" },
   ];
 
-  if (
-    (window.location.pathname.includes("index") || window.location.pathname.includes("cart")) &&
-    isLoggedIn !== "true"
-  ) {
+  if ((window.location.pathname.includes("index") || window.location.pathname.includes("cart")) &&
+      isLoggedIn !== "true") {
     window.location.href = "login.html";
   }
 
@@ -26,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("isLoggedIn");
       localStorage.removeItem("cart");
-      window.location.href = "login.html";
+      window.location.href = "logout.html";
     });
   }
 
@@ -47,9 +45,9 @@ document.addEventListener("DOMContentLoaded", function () {
       const card = document.createElement("div");
       card.className = "product";
       card.innerHTML = `
-        <img src="${product.image}" alt="${product.name}" />
+        <img src="images/${product.image}" alt="${product.name}" />
         <h3>${product.name}</h3>
-        <p>$${product.price}</p>
+        <p>₹${product.price}</p>
         <button onclick="addToCart(${product.id})">Add to Cart</button>
       `;
       productList.appendChild(card);
@@ -58,71 +56,76 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.addToCart = function (id) {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const item = products.find((p) => p.id === id);
-    cart.push(item);
+    const product = products.find((p) => p.id === id);
+
+    const index = cart.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      cart[index].quantity += 1;
+    } else {
+      cart.push({ ...product, quantity: 1 });
+    }
+
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
-    alert(`${item.name} added to cart`);
+    alert(`${product.name} added to cart`);
   };
 
   function renderCart() {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const grouped = {};
-
-    cart.forEach((item) => {
-      if (grouped[item.id]) {
-        grouped[item.id].quantity += 1;
-      } else {
-        grouped[item.id] = { ...item, quantity: 1 };
-      }
-    });
-
     cartItemsContainer.innerHTML = "";
     let total = 0;
 
-    Object.values(grouped).forEach((item) => {
+    cart.forEach((item, index) => {
+      const subtotal = item.quantity * item.price;
+      total += subtotal;
+
       const div = document.createElement("div");
-      div.className = "product";
+      div.className = "cart-item";
       div.innerHTML = `
-        <img src="${item.image}" alt="${item.name}" />
-        <h3>${item.name}</h3>
-        <p>$${item.price}</p>
-        <div class="quantity-controls">
-          <button onclick="decreaseQuantity(${item.id})">−</button>
-          <span>${item.quantity}</span>
-          <button onclick="increaseQuantity(${item.id})">+</button>
+        <img src="images/${item.image}" alt="${item.name}" />
+        <div class="item-details">
+          <h4>${item.name}</h4>
+          <p>Price: ₹${item.price}</p>
+          <div class="cart-buttons">
+            <button onclick="decreaseQuantity(${index})">−</button>
+            <span>${item.quantity}</span>
+            <button onclick="increaseQuantity(${index})">+</button>
+          </div>
+          <p>Subtotal: ₹${subtotal}</p>
         </div>
-        <p>Subtotal: $${(item.price * item.quantity).toFixed(2)}</p>
       `;
       cartItemsContainer.appendChild(div);
-      total += item.price * item.quantity;
     });
 
     cartTotal.innerText = total.toFixed(2);
     updateCartCount();
   }
 
-  window.increaseQuantity = function (id) {
+  window.increaseQuantity = function (index) {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const item = products.find((p) => p.id === id);
-    cart.push(item);
-    localStorage.setItem("cart", JSON.stringify(cart));
-    renderCart();
+    cart[index].quantity++;
+    saveCart(cart);
   };
 
-  window.decreaseQuantity = function (id) {
+  window.decreaseQuantity = function (index) {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const index = cart.findIndex((item) => item.id === id);
-    if (index !== -1) {
+    if (cart[index].quantity > 1) {
+      cart[index].quantity--;
+    } else {
       cart.splice(index, 1);
-      localStorage.setItem("cart", JSON.stringify(cart));
-      renderCart();
     }
+    saveCart(cart);
   };
+
+  function saveCart(updatedCart) {
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+    renderCart();
+  }
 
   function updateCartCount() {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    if (cartCount) cartCount.innerText = cart.length;
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (cartCount) cartCount.innerText = count;
   }
 
   updateCartCount();
